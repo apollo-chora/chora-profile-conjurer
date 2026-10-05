@@ -1,0 +1,16 @@
+README.md
+*.md
+.git
+.github
+.gitignore
+.dockerignore
+.DS_Store
+*.test
+*.out
+coverage.out
+cover.out
+
+# Never send local secrets/config into the Docker build context.
+.env
+.env.*
+!.env.example
