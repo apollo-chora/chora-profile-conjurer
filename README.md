@@ -1,82 +1,114 @@
 # chora-profile-conjurer
 
-The `profile_conjurer` ADK Go agent crew (Pattern P1 Single: one conjurer
-sub-agent). The conjurer reads a learner's free-text bio and completed-course
-titles and emits taxonomy-constrained interest tags plus a per-category
-proficiency map, as a single JSON object:
+## About
 
-```json
-{"tags": {"<category>": ["<tag>"]},
- "proficiency": {"per_category": {"<category>": "<level>"}}}
-```
+chora-profile-conjurer is a Go ADK service with a single `conjurer` agent. It reads a learner's free-text bio and completed course titles, then returns taxonomy-constrained interest tags and a per-category proficiency map as JSON. The result is used by the C+ profiler and by the profile-tag fallback used for duel matchmaking.
 
-The output feeds the C+ profiler page (`profiler_profiles`) and, via the
-profile-tag fallback, duel matchmaking. The conjurer's output IS the final
-answer — no reflection pair, no sequential pipeline.
+## Quick start
 
-Module path: `github.com/apollo-chora/chora-profile-conjurer`.
+Prerequisites:
 
-The crew is cloud-neutral: LLM calls route through `chora-model-gateway`
-(gRPC), traces go over standard OTLP, and nothing here requires a cloud
-account or managed service.
+- Go 1.26.6
+- Access to a running Chora model gateway
+- `CHORA_GATEWAY_TENANT_ID` and `CHORA_GATEWAY_GCID` for the process-level gateway identity
 
-## Layout
-
-| Path | Purpose |
-|---|---|
-| `cmd/profile_conjurer/` | Service binary: wires the conjurer, plugins, and the ADK `agentengine` web-mode launcher. |
-| `internal/agent/` | The composer (deterministic 6-block CREATE prompt), the session-state → `TaskContext` bridge, and the condition extractor. |
-| `internal/agentconfig/` | Embedded per-sub-agent model tier + prompt-version YAML (single source of truth). |
-
-## Operation
-
-The binary serves the ADK launcher's `web` mode over HTTP. Callers create a
-session via the `:query` endpoint with `class_method: async_create_session`
-and pass `tenant_id`, `user_gcid`, `bio`, and `course_titles_json` in the
-session state; the conjurer recomposes its instruction from that state on
-every turn.
-
-- **Port** — `8080` by default (ADK launcher `web` mode; override with
-  `-port` / `PORT`).
-- **Model gateway** — required for LLM calls. `CHORA_GATEWAY_ENDPOINT`
-  (default `gateway.chora.site:443`); set `CHORA_GATEWAY_INSECURE=1` for a
-  plaintext local gateway. `CHORA_GATEWAY_TENANT_ID` + `CHORA_GATEWAY_GCID`
-  are the process-fallback tenant identity (per-request values come from
-  session state via the tenant-propagation plugin).
-- **Database** — none. Sessions are in-memory (`session.InMemoryService`),
-  so the deployment must run with replicas=1.
-- **NATS** — not used. This crew does not subscribe to the event-dispatch
-  lane; termination events go to the service log via the logging publisher.
-- **Traces** — standard OTLP/gRPC via `chora-common/otel`
-  (`OTEL_EXPORTER_OTLP_ENDPOINT`); stdout fallback in local dev.
-
-## Configuration
-
-| Variable | Purpose | Local default |
-| --- | --- | --- |
-| `PROFILE_CONJURER_MODEL` | Override the conjurer primary model | `gemini-3.5-flash` (from `agentconfig`) |
-| `CHORA_GATEWAY_ENDPOINT` | Model-gateway gRPC target | `gateway.chora.site:443` |
-| `CHORA_GATEWAY_AUDIENCE` | ID-token audience for the gateway | `https://gateway.chora.site` |
-| `CHORA_GATEWAY_TENANT_ID` | Process-fallback tenant (required) | unset |
-| `CHORA_GATEWAY_GCID` | Process-fallback gcid (required) | unset |
-| `CHORA_GATEWAY_INSECURE` | Plaintext gRPC to a local gateway (dev only) | unset |
-| `PROFILE_CONJURER_SESSION_APP_NAME` | ADK session `app_name` | `chora-profile-conjurer` |
-| `PORT` | Web server port (ADK launcher) | `8080` |
-| `CHORA_ENV` | `dev` \| `staging` \| `prod` | `dev` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP/gRPC trace endpoint | stdout |
-| `CHORA_SERVICE_VERSION` | OTel `service.version` attribute | `dev` |
-
-Model tiering is agent-driven: the embedded
-`internal/agentconfig/profile_conjurer.yaml` declares the conjurer as CHEAP
-(`gemini-3.5-flash` → `gemini-2.5-flash` fallback). Mana is a token-budget
-quota enforced at the gateway, not a model selector.
-
-## Build and test
+Clone and start the web-mode service:
 
 ```sh
+git clone https://github.com/apollo-chora/chora-profile-conjurer.git
+cd chora-profile-conjurer
+
+export CHORA_GATEWAY_TENANT_ID="<tenant-uuid>"
+export CHORA_GATEWAY_GCID="<user-gcid>"
+
+go run ./cmd/profile_conjurer web -port 8080 agentengine
+```
+
+The gateway defaults to `gateway.chora.site:443`. For a plaintext local gateway, set `CHORA_GATEWAY_ENDPOINT` and `CHORA_GATEWAY_INSECURE=1`.
+
+To build the binary instead:
+
+```sh
+go build -o profile_conjurer ./cmd/profile_conjurer
+./profile_conjurer web -port 8080 agentengine
+```
+
+## Usage
+
+The service runs through the ADK launcher in `web` mode and listens on port `8080` by default. The repository's caller contract creates a session through the `:query` endpoint with `class_method: async_create_session`, supplying the session state used to compose the prompt:
+
+```text
+state:
+  tenant_id: "<tenant-uuid>"
+  user_gcid: "<user-gcid>"
+  bio: "<free-text bio>"
+  course_titles_json: "[\"Intro to Physics\", \"Calculus I\"]"
+  mana_tier: "standard"
+```
+
+The agent recomposes its instruction on every turn from the session state. `course_titles_json` is expected to be a JSON array of completed course titles.
+
+The response is expected to be JSON only:
+
+```json
+{
+  "tags": {
+    "science": ["astronomy", "physics"],
+    "mathematics": ["calculus"]
+  },
+  "proficiency": {
+    "per_category": {
+      "science": "beginner",
+      "mathematics": "beginner"
+    }
+  }
+}
+```
+
+Interest categories are `programming`, `mathematics`, `science`, `humanities`, `arts`, and `languages`. Tags are free-form slugs within those categories. Proficiency levels are `beginner`, `intermediate`, or `advanced`, stored only under `proficiency.per_category`.
+
+Configuration:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PROFILE_CONJURER_MODEL` | `gemini-3.5-flash` | Override the primary model |
+| `CHORA_GATEWAY_ENDPOINT` | `gateway.chora.site:443` | Model-gateway gRPC target |
+| `CHORA_GATEWAY_AUDIENCE` | `https://gateway.chora.site` | ID-token audience for the gateway |
+| `CHORA_GATEWAY_TENANT_ID` | unset | Process-fallback tenant identity; required |
+| `CHORA_GATEWAY_GCID` | unset | Process-fallback GCID; required |
+| `CHORA_GATEWAY_INSECURE` | unset | Use plaintext gRPC for a local gateway when set to `1` |
+| `PROFILE_CONJURER_SESSION_APP_NAME` | `chora-profile-conjurer` | ADK session `app_name` |
+| `PORT` | `8080` | Web server port |
+| `CHORA_ENV` | `dev` | Environment label: `dev`, `staging`, or `prod` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | stdout | OTLP/gRPC trace endpoint |
+| `CHORA_SERVICE_VERSION` | `dev` | OpenTelemetry service version |
+
+The embedded configuration in `internal/agentconfig/profile_conjurer.yaml` defines the `conjurer` sub-agent as `cheap`, using `gemini-3.5-flash` with `gemini-2.5-flash` as its fallback and prompt version `v1`.
+
+Sessions are stored in memory, so deployments using multiple replicas are not supported by the current implementation. The service does not use NATS.
+
+## Development
+
+The repository is a Go module:
+
+```sh
+go mod download
 go build ./...
 go vet ./...
 go test ./...
 ```
 
-The suite is hermetic — no broker, database, gateway, or network is required.
+CI also runs `gofmt -l .` and checks that `go mod tidy` produces no changes to `go.mod` or `go.sum`.
+
+Project layout:
+
+| Path | Purpose |
+| --- | --- |
+| `cmd/profile_conjurer/` | Service entry point and binary tests |
+| `internal/agent/` | Prompt composition, session-state mapping, condition extraction, and tests |
+| `internal/agentconfig/` | Embedded per-agent model and prompt configuration |
+| `internal/agent/testdata/` | Golden prompt test data |
+| `.github/workflows/ci.yml` | Formatting, module consistency, vet, and test checks |
+| `Dockerfile` | Multi-stage container build for the service |
+
+The prompt composer has golden-file coverage and deterministic unit tests. The test suite does not require a broker, database, model gateway, or network connection.
