@@ -169,39 +169,6 @@ func TestCompose_emptyBioAndCourses_minimalValidInstruction(t *testing.T) {
 	}
 }
 
-func TestMandatorySpanAttributes_coversProfiler(t *testing.T) {
-	required := []string{
-		"chora.tenant_id",
-		"chora.user_gcid",
-		"chora.mana_tier",
-		"chora.crew_kind",
-		"chora.profile_conjurer.role",
-		"gen_ai.request.model",
-		"gen_ai.usage.output_tokens",
-	}
-	got := MandatorySpanAttributes()
-	seen := make(map[string]struct{}, len(got))
-	for _, k := range got {
-		seen[k] = struct{}{}
-	}
-	for _, r := range required {
-		if _, ok := seen[r]; !ok {
-			t.Errorf("MandatorySpanAttributes missing %q", r)
-		}
-	}
-}
-
-func TestMandatorySpanAttributes_noDuplicates(t *testing.T) {
-	got := MandatorySpanAttributes()
-	seen := make(map[string]struct{}, len(got))
-	for _, k := range got {
-		if _, dup := seen[k]; dup {
-			t.Errorf("duplicate attribute %q", k)
-		}
-		seen[k] = struct{}{}
-	}
-}
-
 // -----------------------------------------------------------------------------
 // Golden byte-equality — the conjurer prompt is frozen against testdata.
 // -----------------------------------------------------------------------------

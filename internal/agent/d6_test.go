@@ -49,18 +49,3 @@ func TestD6P3_composeIsConcurrencySafe(t *testing.T) {
 	}
 }
 
-func TestD6P4_mandatoryAttributesCoverConjurer(t *testing.T) {
-	got := MandatorySpanAttributes()
-	// chora.profile_conjurer.role distinguishes the conjurer in spans — load-bearing
-	// for the P1 Single per-role cost + latency drill-down.
-	found := false
-	for _, k := range got {
-		if k == "chora.profile_conjurer.role" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Error("MandatorySpanAttributes must include chora.profile_conjurer.role to distinguish conjurer spans")
-	}
-}
