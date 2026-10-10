@@ -71,7 +71,7 @@ Configuration:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PROFILE_CONJURER_MODEL` | `gemini-3.5-flash` | Override the primary model |
+| `PROFILE_CONJURER_MODEL` | `longcat-2.5-preview` | Override the primary model |
 | `CHORA_GATEWAY_ENDPOINT` | `gateway.chora.site:443` | Model-gateway gRPC target |
 | `CHORA_GATEWAY_AUDIENCE` | `https://gateway.chora.site` | ID-token audience for the gateway |
 | `CHORA_GATEWAY_TENANT_ID` | unset | Process-fallback tenant identity; required |
@@ -83,7 +83,7 @@ Configuration:
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | stdout | OTLP/gRPC trace endpoint |
 | `CHORA_SERVICE_VERSION` | `dev` | OpenTelemetry service version |
 
-The embedded configuration in `internal/agentconfig/profile_conjurer.yaml` defines the `conjurer` sub-agent as `cheap`, using `gemini-3.5-flash` with `gemini-2.5-flash` as its fallback and prompt version `v1`.
+The embedded configuration in `internal/agentconfig/profile_conjurer.yaml` defines the `conjurer` sub-agent as `cheap`, using `longcat-2.5-preview` with `longcat-2.5-preview` as its fallback and prompt version `v1`.
 
 Sessions are stored in memory, so deployments using multiple replicas are not supported by the current implementation. The service does not use NATS.
 

@@ -20,8 +20,8 @@ func TestProfileConjurer_TierLadders(t *testing.T) {
 	conjurer, err := cfg.Sub("conjurer")
 	require.NoError(t, err)
 	assert.Equal(t, "cheap", conjurer.Tier)
-	assert.Equal(t, "gemini-3.5-flash", conjurer.PrimaryModel)
-	assert.Equal(t, []string{"gemini-2.5-flash"}, conjurer.FallbackModels)
+	assert.Equal(t, "longcat-2.5-preview", conjurer.PrimaryModel)
+	assert.Equal(t, []string{"longcat-2.5-preview"}, conjurer.FallbackModels)
 	assert.Equal(t, "v1", conjurer.PromptVersion)
 }
 

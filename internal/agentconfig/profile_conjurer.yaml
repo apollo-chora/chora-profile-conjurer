@@ -11,9 +11,10 @@
 # the old tieredmodelplugin is no longer registered. See
 # feedback_mana_is_quota_not_model_selector.
 #
-# Tiers (locked 2026-06-01, mirroring qgen's convention):
-#   HIGH  = gemini-3.1-pro-preview → gemini-2.5-pro    (reasoning / judgement-heavy)
-#   CHEAP = gemini-3.5-flash       → gemini-2.5-flash  (classification / labelling)
+# Tiers (locked 2026-06-01, mirroring qgen's convention): single-provider
+# deployment — the old HIGH/CHEAP tiering collapses onto ONE model.
+#   HIGH  = longcat-2.5-preview    (reasoning / judgement-heavy)
+#   CHEAP = longcat-2.5-preview    (classification / labelling)
 #
 # profile_conjurer is a P1 Single crew (one conjurer sub-agent). The conjurer
 # extracts a bounded set of taxonomy-constrained interest tags from a free-text
@@ -28,6 +29,6 @@ agent: profile_conjurer
 sub_agents:
   conjurer:
     tier: cheap
-    primary_model: gemini-3.5-flash
-    fallback_models: [gemini-2.5-flash]
+    primary_model: longcat-2.5-preview
+    fallback_models: [longcat-2.5-preview]
     prompt_version: v1
