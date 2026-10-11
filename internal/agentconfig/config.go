@@ -6,7 +6,7 @@
 // moderation_adk_go/internal/agentconfig). Each agent owns its OWN embedded YAML
 // (separation of concern) declaring, per sub-agent: tier / primary_model /
 // fallback_models / prompt_version. The agent reads its config at boot and:
-//   - constructs ONE gemini.NewModel per sub-agent from primary_model routed
+//   - constructs ONE modelgatewayclient per sub-agent from primary_model routed
 //     through chora-model-gateway (ADR-177 full mana umbrella),
 //   - carries fallback_models as the agent-DECLARED fallback chain (advisory
 //     until a future gateway cutover wires it to

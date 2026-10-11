@@ -29,7 +29,7 @@
 //
 // Env vars (NEVER inlined per feedback_no_inline_config):
 //
-//	PROFILE_CONJURER_MODEL          — override conjurer primary (default from agentconfig YAML: gemini-3.5-flash)
+//	PROFILE_CONJURER_MODEL          — override conjurer primary (default from agentconfig YAML: longcat-2.5-preview)
 //	CHORA_GATEWAY_ENDPOINT        — model-gateway endpoint (default gateway.chora.site:443)
 //	CHORA_GATEWAY_TENANT_ID       — process-fallback tenant (required; per-request from session state)
 //	CHORA_GATEWAY_GCID            — process-fallback gcid (required; per-request from session state)
@@ -116,7 +116,8 @@ func main() {
 	// AGENT-DRIVEN tiering (CR mana-is-quota-not-model-selector 2026-06-01):
 	// per-sub-agent model + fallback chain are config-declared in the embedded
 	// agentconfig YAML (single source of truth), mirroring qgen / moderation.
-	// conjurer = CHEAP (gemini-3.5-flash → gemini-2.5-flash). An individual
+	// conjurer = CHEAP (longcat-2.5-preview — the deployment's one text route,
+	// so the fallback repeats the primary). An individual
 	// primary may be overridden via env for quick ops experiments; fallback +
 	// tier stay config-declared. This crew routes through chora-model-gateway
 	// (ADR-177 full mana umbrella), so the model is selected fully agent-side
@@ -168,7 +169,7 @@ func main() {
 			"(process fallback; per-request values come from session state — no silent " +
 			"mis-attribution per ADR-169 + feedback_no_stubs_real_wiring)")
 	}
-	conjurerGemini, err := modelgatewayclient.New(ctx, conjurerGatewayConfig(conjurerCfg, conjurerModel, crewKind, gatewayEndpoint, gatewayGCID, gatewayTenantID, gatewayAudience))
+	conjurerLLM, err := modelgatewayclient.New(ctx, conjurerGatewayConfig(conjurerCfg, conjurerModel, crewKind, gatewayEndpoint, gatewayGCID, gatewayTenantID, gatewayAudience))
 	if err != nil {
 		log.Fatalf("profile_conjurer: modelgatewayclient.New(conjurer, %s): %v", conjurerModel, err)
 	}
@@ -189,7 +190,7 @@ func main() {
 	// Instruction field.
 	conjurer, err := llmagent.New(llmagent.Config{
 		Name:        "conjurer",
-		Model:       conjurerGemini,
+		Model:       conjurerLLM,
 		Description: "Conjures a learner's taxonomy-constrained interest tags (from bio) + proficiency (from completed course titles). P1 Single crew; CHEAP tier bounded-label extraction.",
 		// ADR-197 M-A: stamp prompt_version + content_hash + {role} on the span.
 		InstructionProvider: promptstamping.WithStamping(
@@ -212,8 +213,8 @@ func main() {
 	// 2026-06-01, user directive — mirrors qgen / moderation). Mana is a
 	// token-budget QUOTA system (manaplugin gate, above) — it must NOT dictate
 	// which LLM model is used. Model selection is AGENT-DRIVEN via the
-	// per-sub-agent agentconfig YAML (conjurer=cheap gemini-3.5-flash), the
-	// sub-agent getting its own gemini.NewModel at boot. See
+	// per-sub-agent agentconfig YAML (conjurer=cheap longcat-2.5-preview); the
+	// sub-agent gets its own gateway client at boot. See
 	// feedback_mana_is_quota_not_model_selector + the CR tracker.
 
 	// MaxIterations = 3 — P1 Single crew: one extraction turn plus a small
