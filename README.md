@@ -71,7 +71,8 @@ Configuration:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PROFILE_CONJURER_MODEL` | `longcat-2.5-preview` | Override the primary model |
+| `PROFILE_CONJURER_MODEL` | unset | Gateway `logical_model_id`; required, no default |
+| `PROFILE_CONJURER_FALLBACK_MODELS` | unset | Optional comma-separated fallback chain |
 | `CHORA_GATEWAY_ENDPOINT` | `gateway.chora.site:443` | Model-gateway gRPC target |
 | `CHORA_GATEWAY_AUDIENCE` | `https://gateway.chora.site` | ID-token audience for the gateway |
 | `CHORA_GATEWAY_TENANT_ID` | unset | Process-fallback tenant identity; required |
@@ -83,7 +84,7 @@ Configuration:
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | stdout | OTLP/gRPC trace endpoint |
 | `CHORA_SERVICE_VERSION` | `dev` | OpenTelemetry service version |
 
-The embedded configuration in `internal/agentconfig/profile_conjurer.yaml` defines the `conjurer` sub-agent as `cheap`, using `longcat-2.5-preview` (the deployment's only text route) as the primary model and the same route as the fallback, with prompt version `v1`.
+Model configuration is environment-only. The embedded configuration in `internal/agentconfig/profile_conjurer.yaml` declares the `conjurer` sub-agent's tier (`cheap`) and prompt version (`v1`); the model itself comes from the required `PROFILE_CONJURER_MODEL` env var and the optional `PROFILE_CONJURER_FALLBACK_MODELS` comma list. No model name is compiled into the binary or the YAML, and boot fails when `PROFILE_CONJURER_MODEL` is unset.
 
 Sessions are stored in memory, so deployments using multiple replicas are not supported by the current implementation. The service does not use NATS.
 
@@ -106,7 +107,7 @@ Project layout:
 | --- | --- |
 | `cmd/profile_conjurer/` | Service entry point and binary tests |
 | `internal/agent/` | Prompt composition, session-state mapping, condition extraction, and tests |
-| `internal/agentconfig/` | Embedded per-agent model and prompt configuration |
+| `internal/agentconfig/` | Embedded per-agent tier and prompt configuration |
 | `internal/agent/testdata/` | Golden prompt test data |
 | `.github/workflows/ci.yml` | Formatting, module consistency, vet, and test checks |
 | `Dockerfile` | Multi-stage container build for the service |
