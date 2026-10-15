@@ -2,7 +2,7 @@
 // CREATE-pattern composer + D6 attribute contract.
 //
 // P1 Single pattern per crew-composition SKILL §1 + §2:
-//   - Conjurer (CHEAP tier — longcat-2.5-preview) — extracts taxonomy-constrained
+//   - Conjurer (CHEAP tier) — extracts taxonomy-constrained
 //     interest tags from a free-text bio AND infers proficiency from completed
 //     course titles.
 //

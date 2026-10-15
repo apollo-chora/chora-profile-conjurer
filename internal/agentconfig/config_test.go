@@ -16,14 +16,11 @@ func TestProfileConjurer_TierLadders(t *testing.T) {
 	// CHEAP tier — conjurer (bounded-label extraction: bio → taxonomy tags +
 	// course titles → proficiency). A bounded-label task, so the cheap tier is
 	// the correct fit and keeps this latency-relevant profiler-page call
-	// inexpensive. The fallback repeats the primary on purpose: the deployment
-	// has one text route (LongCat-2.5-Preview), so there is nothing else to
-	// degrade to.
+	// inexpensive. The model id is NOT declared here: it is env-only
+	// (PROFILE_CONJURER_MODEL), so no literal model name lives in the YAML.
 	conjurer, err := cfg.Sub("conjurer")
 	require.NoError(t, err)
 	assert.Equal(t, "cheap", conjurer.Tier)
-	assert.Equal(t, "longcat-2.5-preview", conjurer.PrimaryModel)
-	assert.Equal(t, []string{"longcat-2.5-preview"}, conjurer.FallbackModels)
 	assert.Equal(t, "v1", conjurer.PromptVersion)
 }
 
