@@ -14,14 +14,13 @@ func TestProfileConjurer_TierLadders(t *testing.T) {
 	assert.Equal(t, "profile_conjurer", cfg.Agent)
 
 	// CHEAP tier — conjurer (bounded-label extraction: bio → taxonomy tags +
-	// course titles → proficiency). A bounded-label task; the cheap Flash tier
-	// is the correct fit and keeps this latency-relevant profiler-page call
-	// inexpensive.
+	// course titles → proficiency). A bounded-label task, so the cheap tier is
+	// the correct fit and keeps this latency-relevant profiler-page call
+	// inexpensive. The model id is NOT declared here: it is env-only
+	// (PROFILE_CONJURER_MODEL), so no literal model name lives in the YAML.
 	conjurer, err := cfg.Sub("conjurer")
 	require.NoError(t, err)
 	assert.Equal(t, "cheap", conjurer.Tier)
-	assert.Equal(t, "gemini-3.5-flash", conjurer.PrimaryModel)
-	assert.Equal(t, []string{"gemini-2.5-flash"}, conjurer.FallbackModels)
 	assert.Equal(t, "v1", conjurer.PromptVersion)
 }
 

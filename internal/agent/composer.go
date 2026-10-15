@@ -2,8 +2,9 @@
 // CREATE-pattern composer + D6 attribute contract.
 //
 // P1 Single pattern per crew-composition SKILL §1 + §2:
-//   - Conjurer (T2 Flash Preview) — extracts taxonomy-constrained interest tags
-//     from a free-text bio AND infers proficiency from completed course titles.
+//   - Conjurer (CHEAP tier) — extracts taxonomy-constrained
+//     interest tags from a free-text bio AND infers proficiency from completed
+//     course titles.
 //
 // profile_conjurer is a SINGLE-agent crew: the conjurer's output IS the final
 // answer surfaced to the caller. No reflection pair, no sequential pipeline.
